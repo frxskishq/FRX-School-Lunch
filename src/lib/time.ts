@@ -1,0 +1,17 @@
+export const TZ = process.env.TZ_NAME || "America/Boise";
+export const CUTOFF_HOUR = Number(process.env.CUTOFF_HOUR ?? 20);
+const parts = (d: Date) => Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: TZ, hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit" }).formatToParts(d).map(p => [p.type, p.value]));
+export function localNow(d = new Date()) { const p: any = parts(d); return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) % 24 }; }
+const addDays = (s: string, n: number) => { const d = new Date(s + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const dow = (s: string) => new Date(s + "T12:00:00Z").getUTCDay();
+/** Next school day (Mon-Fri) after today's local date; open until CUTOFF_HOUR the evening before. */
+export function orderWindow(d = new Date()) {
+  const n = localNow(d);
+  let target = addDays(n.date, 1);
+  while ([0, 6].includes(dow(target))) target = addDays(target, 1);
+  const cutoffDay = addDays(target, -1);
+  const open = n.date < cutoffDay || (n.date === cutoffDay && n.hour < CUTOFF_HOUR);
+  return { target, open, cutoffDay };
+}
+export const fmtDate = (s: string) => new Date(s + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+export const money = (c: number) => `$${(c / 100).toFixed(2)}`;
