@@ -10,3 +10,15 @@ export async function sendMail(to: string, subject: string, body: string, o: Opt
   if (!r.ok) console.error("[mail] send failed", r.status, await r.text());
   return r.ok;
 }
+/** Send many individual emails (each with its own text) via Resend's batch API, 100 per call. */
+export async function sendBatch(msgs: { to: string; subject: string; text: string; unsubscribeUrl?: string }[]) {
+  if (!process.env.RESEND_API_KEY) { msgs.forEach(m => console.log(`\n[mail] to=${m.to}\n${m.subject}\n${m.text}\n`)); return msgs.length; }
+  let sent = 0;
+  for (let i = 0; i < msgs.length; i += 100) {
+    const chunk = msgs.slice(i, i + 100).map(m => ({ from: FROM, to: m.to, reply_to: process.env.REPLY_TO || "admin@frxskishq.com", subject: m.subject, text: m.text,
+      headers: m.unsubscribeUrl ? { "List-Unsubscribe": `<${m.unsubscribeUrl}>` } : undefined }));
+    const r = await fetch("https://api.resend.com/emails/batch", { method: "POST", headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(chunk) });
+    if (r.ok) sent += chunk.length; else console.error("[mail] batch failed", r.status, await r.text());
+  }
+  return sent;
+}
