@@ -21,3 +21,10 @@ export function MenuEditor({ menu }: any) {
       <label style={{margin:0,display:"flex",alignItems:"center",gap:4}}><input style={{width:"auto"}} type="checkbox" checked={x.active} onChange={e => set({ active: e.target.checked })} />on</label>
       <button className="sec" style={{width:"auto",marginTop:0,padding:"0 12px"}} onClick={() => save(x)}>Save</button></div>; })}</div>;
 }
+export function ReportButtons({ date }: { date: string }) {
+  const [msg, setMsg] = useState("");
+  return <div className="noprint" style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+    <button className="sec" style={{flex:1}} onClick={async () => { const r: any = await call({ action: "emailReport", date }); setMsg(r.ok ? "Sent to admin@frxskishq.com" : r.error); }}>Email this list</button>
+    <a className="btn sec" style={{flex:1,background:"#fff",color:"#1d1d1b",border:"1px solid #cfcdc5"}} href={"/api/admin/export?date=" + date}>Download CSV</a>
+    {msg && <div className="ok" style={{width:"100%"}}>{msg}</div>}</div>;
+}

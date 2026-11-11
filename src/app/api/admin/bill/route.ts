@@ -1,10 +1,11 @@
-import { db } from "@/lib/db"; import { isAdmin, setSession, clearSession } from "@/lib/auth"; import { chargeCard } from "@/lib/square"; import { sendMail } from "@/lib/mail"; import { money, fmtDate } from "@/lib/time";
+import { db } from "@/lib/db"; import { isAdmin, setSession, clearSession } from "@/lib/auth"; import { chargeCard } from "@/lib/square"; import { sendMail } from "@/lib/mail"; import { sendKitchenReport } from "@/lib/report"; import { money, fmtDate } from "@/lib/time";
 export async function POST(req: Request) {
   const b = await req.json();
   if (b.action === "login") { if (b.password && b.password === process.env.ADMIN_PASSWORD) { await setSession("a", "admin"); return Response.json({ ok: true }); } return Response.json({ error: "Wrong password" }, { status: 401 }); }
   if (!(await isAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
   if (b.action === "logout") { await clearSession(); return Response.json({ ok: true }); }
   const p = await db();
+  if (b.action === "emailReport") { if (!/^\d{4}-\d{2}-\d{2}$/.test(b.date)) return Response.json({ error: "Bad date" }, { status: 400 }); const ok = await sendKitchenReport(b.date); return ok ? Response.json({ ok: true }) : Response.json({ error: "Email failed" }, { status: 500 }); }
   if (b.action === "price") { await p.query("update menu_items set price_cents=$2, name=$3, active=$4 where id=$1", [b.id, b.price_cents, b.name, b.active]); return Response.json({ ok: true }); }
   if (b.action === "bill") { // month = YYYY-MM; bills all unbilled orders up to the end of that month, once per family
     const month: string = b.month; if (!/^\d{4}-\d{2}$/.test(month)) return Response.json({ error: "Bad month" }, { status: 400 });
