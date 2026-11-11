@@ -1,4 +1,4 @@
-import { db } from "@/lib/db"; import { isAdmin } from "@/lib/auth"; import { orderWindow, fmtDate, money } from "@/lib/time"; import { AdminLogin, BillPanel, MenuEditor } from "./Client";
+import { db } from "@/lib/db"; import { isAdmin } from "@/lib/auth"; import { orderWindow, fmtDate, money } from "@/lib/time"; import { AdminLogin, BillPanel, MenuEditor, ReportButtons } from "./Client";
 export const dynamic = "force-dynamic";
 export default async function Admin({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   if (!(await isAdmin())) return <><h1>FRX staff</h1><AdminLogin /></>;
@@ -10,6 +10,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   return <>
     <h1>Kitchen list: {fmtDate(date)}</h1>
     <form className="noprint" style={{display:"flex",gap:8}}><input type="date" name="date" defaultValue={date} /><button className="sec" style={{width:"auto",marginTop:0,padding:"0 16px"}}>Go</button></form>
+    <ReportButtons date={date} />
     <div className="card"><b>Totals ({rows.length} lunches)</b><table><tbody>{Object.entries(totals).map(([k, v]) => <tr key={k}><td>{k}</td><td><b>{v}</b></td></tr>)}</tbody></table>
       {date === w.target && w.open && <div className="muted">Ordering still open until the cutoff; list may change.</div>}</div>
     <div className="card"><b>By student</b><table><tbody>{rows.map((r: any, i: number) => <tr key={i}><td>{r.student}</td><td>{r.item_name}</td></tr>)}</tbody></table>{!rows.length && <span className="muted">No orders.</span>}</div>
