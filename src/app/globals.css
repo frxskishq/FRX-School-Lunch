@@ -12,3 +12,14 @@ button.sec{background:#fff;color:#1d1d1b;border:1px solid #cfcdc5}button:disable
 table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:8px;border-bottom:1px solid #eee}
 .row{display:flex;justify-content:space-between;align-items:center}.nav a{font-size:14px;color:#6b6a65}
 @media print{.noprint{display:none}body{background:#fff}.card{box-shadow:none;border:1px solid #ccc}}
+main:has(.cwrap){max-width:1040px}
+.chero{background:#1d1d1b;color:#fff;border-radius:14px;padding:28px 24px;margin-bottom:8px}.chero h1{font-size:30px;margin:0 0 6px}.chero p{margin:0;color:#d8d6cf;max-width:640px}
+.chero .pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pill{background:#ffffff1f;border-radius:999px;padding:5px 12px;font-size:13px}
+.cgrid{display:grid;grid-template-columns:1fr;gap:16px}@media(min-width:900px){.cgrid{grid-template-columns:1fr 340px;align-items:start}.csum{position:sticky;top:16px}}
+.step{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#c8321e;font-weight:700;margin:20px 0 4px}
+.citem{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #eee}.citem:last-child{border:0}.citem .d{flex:1}.citem small{color:#6b6a65;display:block}
+.qty{display:flex;align-items:center;gap:6px}.qty button{width:36px;height:36px;padding:0;margin:0;font-size:20px;border-radius:8px;background:#fff;color:#1d1d1b;border:1px solid #cfcdc5}.qty input{width:64px;text-align:center;padding:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.chip{padding:9px 14px;border:1px solid #cfcdc5;border-radius:8px;background:#fff;cursor:pointer;font-size:15px;width:auto;margin:0;color:#1d1d1b;font-weight:500}.chip.on{background:#1d1d1b;color:#fff;border-color:#1d1d1b}
+.two{display:grid;grid-template-columns:1fr;gap:0 12px}@media(min-width:600px){.two{grid-template-columns:1fr 1fr}}
+.sumrow{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:4px 0}.sumtot{border-top:2px solid #1d1d1b;margin-top:8px;padding-top:8px;font-weight:700;font-size:18px}
+.hp{position:absolute;left:-9999px;height:0;overflow:hidden}

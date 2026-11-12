@@ -8,6 +8,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const menu = (await p.query("select * from menu_items order by id")).rows;
   const owed = (await p.query("select f.email, sum(o.price_cents)::int t from orders o join families f on f.id=o.family_id where billed_at is null group by f.email order by f.email")).rows;
   return <>
+    <div className="row noprint"><span /><a className="nav" href="/admin/catering"><b>Catering orders and menu</b></a></div>
     <h1>Kitchen list: {fmtDate(date)}</h1>
     <form className="noprint" style={{display:"flex",gap:8}}><input type="date" name="date" defaultValue={date} /><button className="sec" style={{width:"auto",marginTop:0,padding:"0 16px"}}>Go</button></form>
     <ReportButtons date={date} />

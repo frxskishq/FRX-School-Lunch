@@ -22,3 +22,7 @@ export function orderWindow(d = new Date()) {
 }
 export const fmtDate = (s: string) => new Date(s + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 export const money = (c: number) => `$${(c / 100).toFixed(2)}`;
+/** Local wall-clock minutes since midnight, for comparing against pickup slots. */
+export function localClock(d = new Date()) { const p: any = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: TZ, hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(d).map(x => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, minutes: (Number(p.hour) % 24) * 60 + Number(p.minute) }; }
+export const fmtTime = (t: string) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; };

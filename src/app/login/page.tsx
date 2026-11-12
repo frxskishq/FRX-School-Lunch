@@ -11,6 +11,6 @@ export default function Login() {
       <button disabled={busy}>Email me a sign-in link</button>
       {msg?.ok && <div className="ok" style={{marginTop:12}}>Check your email for the link.{msg.devLink && <> Dev mode: <a href={msg.devLink}>open sign-in link</a></>}</div>}
     </form>
-    <p className="muted"><a href="/reminders">Get an email when ordering opens</a> · <a href="/admin">FRX staff login</a></p>
+    <p className="muted"><a href="/reminders">Get an email when ordering opens</a> · <a href="/catering">FRX Catering for teams</a> · <a href="/admin">FRX staff login</a></p>
   </>;
 }
