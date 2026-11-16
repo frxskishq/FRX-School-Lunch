@@ -10,6 +10,6 @@ export async function POST(req: Request) {
     returning token, confirmed_at, unsubscribed_at`, [e, token]);
   const row = r.rows[0];
   // Always answer the same so the form can't be used to probe who is subscribed.
-  if (!row.confirmed_at || row.unsubscribed_at) await sendMail(e, "Confirm your FRX Lunch reminders", `Tap to confirm you want an email when lunch ordering opens:\n${base(req)}/api/reminders/confirm?token=${row.token}\n\nIf you didn't ask for this, ignore this email and nothing will be sent.`);
+  if (!row.confirmed_at || row.unsubscribed_at) await sendMail(e, "Confirm your FRX Lunch reminders", `Tap to confirm you want an ordering reminder email before each lunch deadline:\n${base(req)}/api/reminders/confirm?token=${row.token}\n\nIf you didn't ask for this, ignore this email and nothing will be sent.`);
   return Response.json({ ok: true });
 }
