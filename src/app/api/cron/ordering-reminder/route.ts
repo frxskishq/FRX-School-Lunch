@@ -12,8 +12,8 @@ export async function POST(req: Request) {
   const subs = (await p.query("select email, token from reminder_subscribers where confirmed_at is not null and unsubscribed_at is null")).rows;
   const site = process.env.APP_URL || "https://lunch.frxskishq.com"; const hr = CUTOFF_HOUR % 12 || 12, ap = CUTOFF_HOUR >= 12 ? "PM" : "AM";
   const sent = await sendBatch(subs.map((s: any) => { const un = `${site}/api/reminders/unsubscribe?token=${s.token}`; return { to: s.email, unsubscribeUrl: un,
-    subject: `Lunch ordering is open for ${fmtDate(w.target)}`,
-    text: [`Ordering is open for ${fmtDate(w.target)}.`, "", `Orders close tonight at ${hr}:00 ${ap} Mountain Time and are final once placed.`, "", `Order here: ${site}`, "", `Unsubscribe: ${un}`, "", "This is an automated message from lunch@frxskishq.com. Questions: admin@frxskishq.com"].join("\n") }; }));
+    subject: `Last call: lunch orders for ${fmtDate(w.target)} close tonight`,
+    text: [`Reminder: lunch orders for ${fmtDate(w.target)} close tonight at ${hr}:00 ${ap} Mountain Time.`, "", `Orders are final once placed.`, "", `Order here: ${site}`, "", `Unsubscribe: ${un}`, "", "This is an automated message from lunch@frxskishq.com. Questions: admin@frxskishq.com"].join("\n") }; }));
   await p.query("update reminder_log set recipients=$2 where lunch_date=$1", [w.target, sent]);
   return Response.json({ sent, target: w.target });
 }
