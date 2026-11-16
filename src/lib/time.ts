@@ -10,6 +10,20 @@ export const FULFILLMENT_DAYS = (process.env.FULFILLMENT_DAYS || "3,5").split(",
 const OPEN_DAYS_AHEAD = Number(process.env.OPEN_DAYS_AHEAD ?? 1);
 export const isFulfillmentDay = (s: string) => FULFILLMENT_DAYS.includes(dow(s));
 export { addDays };
+/** How many days ahead parents can order lunches. */
+const ORDER_DAYS_AHEAD = Number(process.env.ORDER_DAYS_AHEAD ?? 28);
+/** A lunch date takes orders any time until CUTOFF_HOUR on the evening before it. */
+export function isOpenFor(date: string, d = new Date()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date))) return false;
+  const n = localNow(d); const cutoffDay = addDays(date, -1);
+  return isFulfillmentDay(date) && date <= addDays(n.date, ORDER_DAYS_AHEAD) && (n.date < cutoffDay || (n.date === cutoffDay && n.hour < CUTOFF_HOUR));
+}
+/** Upcoming fulfillment dates that can still be ordered right now. */
+export function openDates(d = new Date()) {
+  const n = localNow(d); const out: string[] = [];
+  for (let i = 1; i <= ORDER_DAYS_AHEAD; i++) { const x = addDays(n.date, i); if (isOpenFor(x, d)) out.push(x); }
+  return out;
+}
 /** Next fulfillment day after today's local date; open from OPEN_DAYS_AHEAD days before until CUTOFF_HOUR the evening before. */
 export function orderWindow(d = new Date()) {
   const n = localNow(d);
