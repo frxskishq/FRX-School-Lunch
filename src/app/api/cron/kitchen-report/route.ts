@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"; import { localNow, addDays, isFulfillmentDay, CUTOFF_HOUR } from "@/lib/time"; import { sendKitchenReport } from "@/lib/report";
-// Called by a Railway cron at 02:05 and 03:05 UTC on Wed/Fri. Only the run after the 8 PM Mountain cutoff sends, and only once per lunch date.
+// Called by a Railway cron at 02:05 and 03:05 UTC on Tue evenings (Mountain). Only the run after the 8 PM Mountain cutoff sends, and only once per lunch date.
 export async function POST(req: Request) {
   if (!process.env.CRON_SECRET || req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return Response.json({ error: "Forbidden" }, { status: 403 });
   const n = localNow(); const date = addDays(n.date, 1);
