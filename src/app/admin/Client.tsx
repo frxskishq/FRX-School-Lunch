@@ -28,3 +28,15 @@ export function ReportButtons({ date }: { date: string }) {
     <a className="btn sec" style={{flex:1,background:"#fff",color:"#1d1d1b",border:"1px solid #cfcdc5"}} href={"/api/admin/export?date=" + date}>Download CSV</a>
     {msg && <div className="ok" style={{width:"100%"}}>{msg}</div>}</div>;
 }
+export function OrderRow({ o, menu }: any) {
+  const [mid, setMid] = useState(o.menu_item_id); const [msg, setMsg] = useState("");
+  const run = async (b: any, ask?: string) => { if (ask && !confirm(ask)) return; const r: any = await call({ id: o.id, ...b }); r.ok ? location.reload() : setMsg(r.error); };
+  const btn = { width: "auto", marginTop: 0, padding: "0 10px" };
+  return <tr><td>{o.student}</td><td>{o.refunded ? <s>{o.item_name}</s> : o.billed ? o.item_name : <select value={mid} onChange={e => setMid(+e.target.value)}>{menu.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>}
+    {o.refunded && " (refunded)"}{msg && <div className="err">{msg}</div>}</td>
+    <td className="noprint" style={{whiteSpace:"nowrap"}}>
+      {!o.billed && <><button className="sec" style={btn} disabled={mid === o.menu_item_id} onClick={() => run({ action: "updateOrder", menuItemId: mid })}>Save</button>{" "}
+        <button className="sec" style={btn} onClick={() => run({ action: "deleteOrder" }, `Remove ${o.student}'s order?`)}>Remove</button></>}
+      {o.billed && !o.refunded && <button className="sec" style={btn} onClick={() => run({ action: "refundOrder" }, `Refund $${(o.price_cents / 100).toFixed(2)} to the family's card?`)}>Refund</button>}
+      {o.refunded && <button className="sec" style={btn} onClick={() => run({ action: "deleteOrder" }, "Remove this refunded order record?")}>Remove</button>}</td></tr>;
+}
