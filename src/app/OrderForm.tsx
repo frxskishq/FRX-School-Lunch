@@ -22,9 +22,9 @@ export default function OrderForm({ school, students, menu, hasCard, dates, sq }
     {err && <div className="err">{err}</div>}
     {!hasCard && <div className="card"><b>Step 1: Add a card</b><p className="muted">Your card is charged once a month for all lunches. Only Square's secure card reference is stored.</p>
       {sq ? <CardBox sq={sq} onSaved={refresh} setErr={setErr} /> : <button disabled={busy} onClick={async () => (await post({ action: "card" })) && refresh()}>Add card (demo)</button>}</div>}
-    <div className="card"><b>{students.length ? "Students" : "Add your student"}</b>
+    <div className="card"><b>{students.length ? "Students" : "Add your student"}</b><div className="muted">Students are listed per school. Add siblings at another school on that school's page.</div>
       <div style={{display:"flex",gap:8}}><input placeholder="Student name" value={name} onChange={e => setName(e.target.value)} />
-      <button className="sec" style={{width:"auto",marginTop:0,padding:"0 16px"}} disabled={busy || !name.trim()} onClick={async () => (await post({ action: "student", name })) && refresh()}>Add</button></div></div>
+      <button className="sec" style={{width:"auto",marginTop:0,padding:"0 16px"}} disabled={busy || !name.trim()} onClick={async () => (await post({ action: "student", school, name })) && refresh()}>Add</button></div></div>
     {open && hasCard && students.length > 0 && <div className="card"><b>Lunch date</b><select value={date} onChange={e => setDate(e.target.value)}>{dates.map((d: any) => <option key={d.date} value={d.date}>{d.label}</option>)}</select></div>}
     {open && hasCard && students.map((s: any) => <div className="card" key={s.id}><b>{s.name}</b>
       {menu.map((m: any) => <label key={m.id} className="opt"><input type="radio" name={"s" + s.id} checked={sel[s.id] === m.id} onChange={() => setSel({ ...sel, [s.id]: m.id })} /><span><b>{m.name}</b><br /><small className="muted">{m.description}</small></span><span>${(m.price_cents / 100).toFixed(2)}</span></label>)}

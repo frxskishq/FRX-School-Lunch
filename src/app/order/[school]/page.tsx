@@ -6,7 +6,7 @@ export default async function Order({ params }: { params: Promise<{ school: stri
   const fid = await parentId(); if (!fid) redirect("/login");
   const p = await db(); const dates = openDates(new Date(), [school.day]).map(d => ({ date: d, label: fmtDate(d) }));
   const f = (await p.query("select * from families where id=$1", [fid])).rows[0]; if (!f) redirect("/login");
-  const students = (await p.query("select * from students where family_id=$1 order by id", [fid])).rows;
+  const students = (await p.query("select * from students where family_id=$1 and school=$2 order by id", [fid, school.id])).rows;
   const menu = (await p.query("select * from menu_items where active order by id")).rows;
   const orders = (await p.query("select o.*, s.name student from orders o join students s on s.id=o.student_id where o.family_id=$1 and o.school=$2 order by lunch_date desc, o.id desc limit 30", [fid, school.id])).rows;
   const month = (await p.query("select coalesce(sum(price_cents),0)::int t from orders where family_id=$1 and billed_at is null", [fid])).rows[0].t;
