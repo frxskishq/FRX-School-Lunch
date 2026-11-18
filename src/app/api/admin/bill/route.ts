@@ -15,12 +15,12 @@ export async function POST(req: Request) {
       if (o.billed_at) return Response.json({ error: "Already billed; refund it instead" }, { status: 400 });
       const m = (await p.query("select * from menu_items where id=$1", [Number(b.menuItemId)])).rows[0]; if (!m) return Response.json({ error: "Bad menu item" }, { status: 400 });
       await p.query("update orders set menu_item_id=$2, item_name=$3, price_cents=$4 where id=$1", [o.id, m.id, m.name, m.price_cents]);
-      await sendMail(fam.email, `FRX Lunch order changed for ${fmtDate(o.lunch_date)}`, `Your order for ${stu} on ${fmtDate(o.lunch_date)} was changed by FRX staff.\nWas: ${o.item_name} ${money(o.price_cents)}\nNow: ${m.name} ${money(m.price_cents)}\nYou'll be billed the new price at month-end. Questions? Reply to this email.`); return Response.json({ ok: true });
+      await sendMail(fam.email, `FRX Lunch order changed for ${fmtDate(o.lunch_date)}`, `Your order for ${stu} on ${fmtDate(o.lunch_date)} was changed by FRX staff.\nWas: ${o.item_name} ${money(o.price_cents)}\nNow: ${m.name} ${money(m.price_cents)}\nYou'll be billed the new price at month-end.`); return Response.json({ ok: true });
     }
     if (b.action === "deleteOrder") {
       if (o.billed_at && !o.refunded_at) return Response.json({ error: "Already billed; refund it first" }, { status: 400 });
       await p.query("delete from orders where id=$1", [o.id]);
-      if (!o.refunded_at) await sendMail(fam.email, `FRX Lunch order cancelled for ${fmtDate(o.lunch_date)}`, `Your order for ${stu} on ${fmtDate(o.lunch_date)} (${o.item_name}, ${money(o.price_cents)}) was cancelled by FRX staff. You will not be billed for it. Questions? Reply to this email.`);
+      if (!o.refunded_at) await sendMail(fam.email, `FRX Lunch order cancelled for ${fmtDate(o.lunch_date)}`, `Your order for ${stu} on ${fmtDate(o.lunch_date)} (${o.item_name}, ${money(o.price_cents)}) was cancelled by FRX staff. You will not be billed for it.`);
       return Response.json({ ok: true });
     }
     if (!o.billed_at) return Response.json({ error: "Not billed yet; just remove the order" }, { status: 400 });
