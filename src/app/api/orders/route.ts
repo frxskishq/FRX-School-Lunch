@@ -8,7 +8,8 @@ export async function POST(req: Request) {
   switch (b.action) {
     case "student": {
       const n = String(b.name || "").trim(); if (!n) return Response.json({ error: "Name required" }, { status: 400 });
-      await p.query("insert into students(family_id,name) values($1,$2)", [fid, n]); return Response.json({ ok: true });
+      if (!school) return Response.json({ error: "Choose a school" }, { status: 400 });
+      await p.query("insert into students(family_id,name,school) values($1,$2,$3)", [fid, n, school.id]); return Response.json({ ok: true });
     }
     case "card": {
       const f = (await p.query("select * from families where id=$1", [fid])).rows[0];
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
       try {
         await c.query("begin");
         for (const i of items) {
-          const s = await c.query("select name from students where id=$1 and family_id=$2", [i.studentId, fid]);
+          const s = await c.query("select name from students where id=$1 and family_id=$2 and school=$3", [i.studentId, fid, school!.id]);
           const m = await c.query("select * from menu_items where id=$1 and active", [i.menuItemId]);
           if (!s.rows[0] || !m.rows[0]) throw new Error("Invalid selection");
           await c.query("insert into orders(family_id,student_id,menu_item_id,item_name,price_cents,lunch_date,school) values($1,$2,$3,$4,$5,$6,$7)", [fid, i.studentId, i.menuItemId, m.rows[0].name, m.rows[0].price_cents, date, school!.id]);
