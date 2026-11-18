@@ -9,6 +9,9 @@ create table if not exists menu_items(id serial primary key, name text not null,
 create table if not exists orders(id serial primary key, family_id int references families(id), student_id int references students(id), menu_item_id int references menu_items(id), item_name text not null, price_cents int not null, lunch_date date not null, created_at timestamptz default now(), billed_at timestamptz);
 alter table orders add column if not exists refunded_cents int not null default 0;
 alter table orders add column if not exists refunded_at timestamptz;
+alter table invoices add column if not exists school text not null default 'hemingway';
+do $$ begin if exists (select 1 from pg_constraint where conname='invoices_family_id_month_key') then alter table invoices drop constraint invoices_family_id_month_key; end if; end $$;
+create unique index if not exists invoices_family_month_school on invoices(family_id, month, school);
 alter table orders add column if not exists square_payment_id text;
 alter table students add column if not exists school text not null default 'hemingway';
 alter table orders add column if not exists school text not null default 'hemingway';

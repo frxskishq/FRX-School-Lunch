@@ -1,4 +1,4 @@
-import { db } from "@/lib/db"; import { isAdmin, setSession, clearSession } from "@/lib/auth"; import { chargeCard, refundPayment } from "@/lib/square"; import { sendMail } from "@/lib/mail"; import { sendKitchenReport } from "@/lib/report"; import { money, fmtDate } from "@/lib/time";
+import { db } from "@/lib/db"; import { isAdmin, setSession, clearSession } from "@/lib/auth"; import { SCHOOLS, schoolById } from "@/lib/schools"; import { chargeCard, refundPayment } from "@/lib/square"; import { sendMail } from "@/lib/mail"; import { sendKitchenReport } from "@/lib/report"; import { money, fmtDate } from "@/lib/time";
 export async function POST(req: Request) {
   const b = await req.json();
   if (b.action === "login") { if (b.password && b.password === process.env.ADMIN_PASSWORD) { await setSession("a", "admin"); return Response.json({ ok: true }); } return Response.json({ error: "Wrong password" }, { status: 401 }); }
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     if (o.refunded_at) return Response.json({ error: "Already refunded" }, { status: 400 });
     // Orders billed since payment ids were recorded know their payment; older ones fall back to the family's earliest paid invoice for that month or later.
     let paymentId: string | null = o.square_payment_id;
-    if (!paymentId) paymentId = (await p.query("select square_payment_id from invoices where family_id=$1 and status='paid' and month>=to_char($2::date,'YYYY-MM') order by month limit 1", [o.family_id, o.lunch_date])).rows[0]?.square_payment_id ?? null;
+    if (!paymentId) paymentId = (await p.query("select square_payment_id from invoices where family_id=$1 and school=$3 and status='paid' and month>=to_char($2::date,'YYYY-MM') order by month limit 1", [o.family_id, o.lunch_date, o.school])).rows[0]?.square_payment_id ?? null;
     if (!paymentId) return Response.json({ error: "No paid invoice found for this order" }, { status: 400 });
     const r = await refundPayment({ paymentId, cents: o.price_cents, key: `frx-refund-${o.id}`, reason: "FRX School Lunch order refund" });
     if (!r.ok) return Response.json({ error: "Refund failed: " + (r as any).error }, { status: 400 });
@@ -35,21 +35,25 @@ export async function POST(req: Request) {
     await sendMail(fam.email, "FRX Lunch refund", `Refunded ${money(o.price_cents)} for ${o.item_name} on ${fmtDate(o.lunch_date)}.`);
     return Response.json({ ok: true });
   }
-  if (b.action === "bill") { // month = YYYY-MM; bills all unbilled orders up to the end of that month, once per family
+  if (b.action === "bill") { // month = YYYY-MM; bills all unbilled orders up to the end of that month, once per family per school. No school = each school in turn, billed separately.
     const month: string = b.month; if (!/^\d{4}-\d{2}$/.test(month)) return Response.json({ error: "Bad month" }, { status: 400 });
-    const fams = (await p.query(`select f.*, sum(o.price_cents)::int total from families f join orders o on o.family_id=f.id where o.billed_at is null and to_char(o.lunch_date,'YYYY-MM')<=$1 group by f.id`, [month])).rows;
+    const targets = b.school ? [schoolById(b.school)].filter(Boolean) as typeof SCHOOLS[number][] : [...SCHOOLS];
+    if (!targets.length) return Response.json({ error: "Bad school" }, { status: 400 });
     const results: any[] = [];
-    for (const f of fams) {
-      const done = await p.query("select 1 from invoices where family_id=$1 and month=$2 and status='paid'", [f.id, month]);
-      if (done.rowCount) continue;
-      const r = await chargeCard({ customerId: f.square_customer_id, cardId: f.square_card_id, cents: f.total, key: `frx-${f.id}-${month}`, note: `FRX School Lunch ${month}` });
-      await p.query("insert into invoices(family_id,month,total_cents,status,square_payment_id) values($1,$2,$3,$4,$5) on conflict(family_id,month) do update set status=excluded.status, total_cents=excluded.total_cents, square_payment_id=excluded.square_payment_id", [f.id, month, f.total, r.ok ? "paid" : "failed", r.ok ? r.id : null]);
-      if (r.ok) {
-        const lines = (await p.query(`select o.*, s.name student from orders o join students s on s.id=o.student_id where o.family_id=$1 and o.billed_at is null and to_char(o.lunch_date,'YYYY-MM')<=$2 order by lunch_date`, [f.id, month])).rows;
-        await p.query(`update orders set billed_at=now(), square_payment_id=$3 where family_id=$1 and billed_at is null and to_char(lunch_date,'YYYY-MM')<=$2`, [f.id, month, r.id]);
-        await sendMail(f.email, `FRX Lunch receipt for ${month}`, lines.map((l: any) => `${fmtDate(l.lunch_date)}  ${l.student}  ${l.item_name}  ${money(l.price_cents)}`).join("\n") + `\nTotal charged: ${money(f.total)}`);
+    for (const sc of targets) {
+      const fams = (await p.query(`select f.*, sum(o.price_cents)::int total from families f join orders o on o.family_id=f.id where o.school=$2 and o.billed_at is null and o.refunded_at is null and to_char(o.lunch_date,'YYYY-MM')<=$1 group by f.id`, [month, sc.id])).rows;
+      for (const f of fams) {
+        const done = await p.query("select 1 from invoices where family_id=$1 and month=$2 and school=$3 and status='paid'", [f.id, month, sc.id]);
+        if (done.rowCount) continue;
+        const r = await chargeCard({ customerId: f.square_customer_id, cardId: f.square_card_id, cents: f.total, key: `frx-${f.id}-${month}-${sc.id}`, note: `FRX School Lunch ${sc.name} ${month}` });
+        await p.query("insert into invoices(family_id,month,school,total_cents,status,square_payment_id) values($1,$2,$3,$4,$5,$6) on conflict(family_id,month,school) do update set status=excluded.status, total_cents=excluded.total_cents, square_payment_id=excluded.square_payment_id", [f.id, month, sc.id, f.total, r.ok ? "paid" : "failed", r.ok ? r.id : null]);
+        if (r.ok) {
+          const lines = (await p.query(`select o.*, s.name student from orders o join students s on s.id=o.student_id where o.family_id=$1 and o.school=$3 and o.billed_at is null and o.refunded_at is null and to_char(o.lunch_date,'YYYY-MM')<=$2 order by lunch_date`, [f.id, month, sc.id])).rows;
+          await p.query(`update orders set billed_at=now(), square_payment_id=$4 where family_id=$1 and school=$3 and billed_at is null and refunded_at is null and to_char(lunch_date,'YYYY-MM')<=$2`, [f.id, month, sc.id, r.id]);
+          await sendMail(f.email, `FRX Lunch receipt for ${sc.name}, ${month}`, lines.map((l: any) => `${fmtDate(l.lunch_date)}  ${l.student}  ${l.item_name}  ${money(l.price_cents)}`).join("\n") + `\nTotal charged: ${money(f.total)}`);
+        }
+        results.push({ email: f.email, school: sc.name, total: money(f.total), status: r.ok ? "paid" : "failed: " + (r as any).error });
       }
-      results.push({ email: f.email, total: money(f.total), status: r.ok ? "paid" : "failed: " + (r as any).error });
     }
     return Response.json({ ok: true, results });
   }
