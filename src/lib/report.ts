@@ -1,7 +1,7 @@
 import { schoolForDate } from "./schools"; import { db } from "./db"; import { fmtDate } from "./time"; import { sendMail } from "./mail";
 export async function kitchenData(date: string) {
   const p = await db(); const sc = schoolForDate(date);
-  const rows = (await p.query("select o.item_name, s.name student from orders o join students s on s.id=o.student_id where o.lunch_date=$1 and ($2::text is null or o.school=$2) order by o.item_name, s.name", [date, sc?.id ?? null])).rows;
+  const rows = (await p.query("select o.item_name, s.name student from orders o join students s on s.id=o.student_id where o.lunch_date=$1 and o.refunded_at is null and ($2::text is null or o.school=$2) order by o.item_name, s.name", [date, sc?.id ?? null])).rows;
   const menu = (await p.query("select name, description from menu_items order by id")).rows;
   const byType: Record<string, string[]> = {}; rows.forEach((r: any) => (byType[r.item_name] ||= []).push(r.student));
   const types = Object.keys(byType).sort((a, b) => menu.findIndex((m: any) => m.name === a) - menu.findIndex((m: any) => m.name === b));
