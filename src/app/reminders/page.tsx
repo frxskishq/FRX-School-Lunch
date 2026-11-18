@@ -7,7 +7,7 @@ export default function Reminders() {
   async function go(e: React.FormEvent) { e.preventDefault(); setBusy(true); setErr("");
     const r = await fetch("/api/reminders/subscribe", { method: "POST", body: JSON.stringify({ email }) }); const j = await r.json(); setBusy(false); r.ok ? setDone(true) : setErr(j.error); }
   return <>
-    <h1>FRX Lunch reminders</h1><p className="muted">Get one email the morning before orders close for the next lunch day (Wednesdays). Orders close at 8 PM the night before.</p>
+    <h1>FRX Lunch reminders</h1><p className="muted">Get one email every Monday at 8 AM reminding you to order lunches for the week. Orders close at 8 PM the night before each lunch day.</p>
     {status && notes[status] && <div className={status === "invalid" ? "err" : "ok"}>{notes[status]}</div>}
     {done ? <div className="ok">Check your email and tap the confirmation link to finish signing up.</div> :
     <form className="card" onSubmit={go}><label>Email</label><input type="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" />
