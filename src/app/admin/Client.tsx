@@ -28,9 +28,9 @@ export function ReportButtons({ date }: { date: string }) {
     <a className="btn sec" style={{flex:1,background:"#fff",color:"#1d1d1b",border:"1px solid #cfcdc5"}} href={"/api/admin/export?date=" + date}>Download CSV</a>
     {msg && <div className="ok" style={{width:"100%"}}>{msg}</div>}</div>;
 }
-export function OrderRow({ o, menu }: any) {
+export function OrderRow({ o, menu, reported }: any) {
   const [mid, setMid] = useState(o.menu_item_id); const [msg, setMsg] = useState("");
-  const run = async (b: any, ask?: string) => { if (ask && !confirm(ask)) return; const r: any = await call({ id: o.id, ...b }); r.ok ? location.reload() : setMsg(r.error); };
+  const run = async (b: any, ask?: string) => { const warn = reported && b.action !== "refundOrder" ? "\n\nThe kitchen list for this date was already sent; the kitchen will not see this change." : ""; if ((ask || warn) && !confirm((ask || "Change this order?") + warn)) return; const r: any = await call({ id: o.id, ...b }); r.ok ? location.reload() : setMsg(r.error); };
   const btn = { width: "auto", marginTop: 0, padding: "6px 12px", fontSize: 14, whiteSpace: "nowrap" as const };
   return <tr><td>{o.student}</td><td>{o.refunded ? <s>{o.item_name}</s> : o.billed ? o.item_name : <select style={{margin:0,padding:"6px 8px"}} value={mid} onChange={e => setMid(+e.target.value)}>{menu.map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>}
     {o.refunded && " (refunded)"}{msg && <div className="err">{msg}</div>}</td>
