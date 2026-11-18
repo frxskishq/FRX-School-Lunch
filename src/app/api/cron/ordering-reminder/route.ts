@@ -3,7 +3,7 @@ const SEND_HOUR = Number(process.env.REMINDER_HOUR ?? 7);
 // Called by a Railway cron shortly after 13:00 and 14:00 UTC on Tue/Thu. Sends once per lunch date, at SEND_HOUR local time, only while ordering is open.
 export async function POST(req: Request) {
   if (!process.env.CRON_SECRET || req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) return Response.json({ error: "Forbidden" }, { status: 403 });
-  const w = orderWindow(); const n = localNow();
+  const w = orderWindow(new Date(), [3]); const n = localNow(); // reminders cover Hemingway (Wednesday) only
   if (!w.open) return Response.json({ skipped: "ordering not open", target: w.target });
   if (n.date < w.opens || n.hour < SEND_HOUR) return Response.json({ skipped: "too early", target: w.target });
   const p = await db();

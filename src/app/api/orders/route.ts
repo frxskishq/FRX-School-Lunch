@@ -1,9 +1,10 @@
-import { db } from "@/lib/db"; import { parentId } from "@/lib/auth"; import { isOpenFor } from "@/lib/time"; import { saveCard, squareConfigured } from "@/lib/square"; import { sendMail } from "@/lib/mail"; import { money, fmtDate } from "@/lib/time";
+import { db } from "@/lib/db"; import { parentId } from "@/lib/auth"; import { isOpenFor } from "@/lib/time"; import { schoolById } from "@/lib/schools"; import { saveCard, squareConfigured } from "@/lib/square"; import { sendMail } from "@/lib/mail"; import { money, fmtDate } from "@/lib/time";
 export async function POST(req: Request) {
   const fid = await parentId(); if (!fid) return Response.json({ error: "Not signed in" }, { status: 401 });
   const b = await req.json(); const p = await db();
-  const date = String(b.date || "");
-  if (b.action === "order" && !isOpenFor(date)) return Response.json({ error: /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date)) ? "Ordering is closed for " + fmtDate(date) : "Choose a lunch date" }, { status: 400 });
+  const date = String(b.date || ""); const school = schoolById(b.school);
+  if (b.action === "order" && !school) return Response.json({ error: "Choose a school" }, { status: 400 });
+  if (b.action === "order" && !isOpenFor(date, new Date(), [school!.day])) return Response.json({ error: /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(Date.parse(date)) ? "Ordering is closed for " + fmtDate(date) : "Choose a lunch date" }, { status: 400 });
   switch (b.action) {
     case "student": {
       const n = String(b.name || "").trim(); if (!n) return Response.json({ error: "Name required" }, { status: 400 });
@@ -29,12 +30,12 @@ export async function POST(req: Request) {
           const s = await c.query("select name from students where id=$1 and family_id=$2", [i.studentId, fid]);
           const m = await c.query("select * from menu_items where id=$1 and active", [i.menuItemId]);
           if (!s.rows[0] || !m.rows[0]) throw new Error("Invalid selection");
-          await c.query("insert into orders(family_id,student_id,menu_item_id,item_name,price_cents,lunch_date) values($1,$2,$3,$4,$5,$6)", [fid, i.studentId, i.menuItemId, m.rows[0].name, m.rows[0].price_cents, date]);
+          await c.query("insert into orders(family_id,student_id,menu_item_id,item_name,price_cents,lunch_date,school) values($1,$2,$3,$4,$5,$6,$7)", [fid, i.studentId, i.menuItemId, m.rows[0].name, m.rows[0].price_cents, date, school!.id]);
           total += m.rows[0].price_cents; lines.push(`${s.rows[0].name}: ${m.rows[0].name} ${money(m.rows[0].price_cents)}`);
         }
         await c.query("commit");
       } catch (e: any) { await c.query("rollback"); return Response.json({ error: e.message }, { status: 400 }); } finally { c.release(); }
-      await sendMail(f.email, `FRX Lunch confirmation for ${fmtDate(date)}`, lines.join("\n") + `\nTotal ${money(total)}, billed at month-end. Orders are final.`);
+      await sendMail(f.email, `FRX Lunch confirmation for ${fmtDate(date)} (${school!.name})`, lines.join("\n") + `\nTotal ${money(total)}, billed at month-end. Orders are final.`);
       return Response.json({ ok: true });
     }
   }

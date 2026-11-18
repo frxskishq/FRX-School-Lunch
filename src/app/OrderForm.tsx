@@ -12,7 +12,7 @@ function CardBox({ sq, onSaved, setErr }: any) {
       const r = await fetch("/api/orders", { method: "POST", body: JSON.stringify({ action: "card", sourceId: t.token }) }); const j = await r.json();
       if (!r.ok) { setErr(j.error); setBusy(false); } else onSaved(); }}>Save card</button></>;
 }
-export default function OrderForm({ students, menu, hasCard, dates, sq }: any) {
+export default function OrderForm({ school, students, menu, hasCard, dates, sq }: any) {
   const [sel, setSel] = useState<Record<number, number>>({}); const [name, setName] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false); const [date, setDate] = useState(dates[0]?.date || ""); const open = dates.length > 0;
   const total = Object.values(sel).reduce((a: number, id) => a + menu.find((m: any) => m.id === id).price_cents, 0);
@@ -31,7 +31,7 @@ export default function OrderForm({ students, menu, hasCard, dates, sq }: any) {
       {sel[s.id] && <button className="sec" style={{marginTop:4,padding:8,fontSize:14}} onClick={() => { const n = { ...sel }; delete n[s.id]; setSel(n); }}>No lunch</button>}</div>)}
     {open && hasCard && students.length > 0 && <>
       <button disabled={busy || done || !total} onClick={async () => { if (!confirm("Orders are final once submitted. No edits or cancellations. Place order?")) return;
-        if (await post({ action: "order", date, items: Object.entries(sel).map(([s, m]) => ({ studentId: +s, menuItemId: m })) })) { setDone(true); refresh(); } }}>Place Order — ${(total / 100).toFixed(2)}</button>
+        if (await post({ action: "order", school, date, items: Object.entries(sel).map(([s, m]) => ({ studentId: +s, menuItemId: m })) })) { setDone(true); refresh(); } }}>Place Order — ${(total / 100).toFixed(2)}</button>
       <p className="muted">Final once submitted. Billed to your card at month-end.</p></>}
   </>;
 }
