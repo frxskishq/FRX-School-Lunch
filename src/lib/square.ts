@@ -23,3 +23,8 @@ export async function chargeCard(opts: { customerId?: string | null; cardId?: st
   const r = await sq("/v2/payments", { idempotency_key: opts.key, source_id: opts.cardId, customer_id: opts.customerId, amount_money: { amount: opts.cents, currency: "USD" }, location_id: process.env.SQUARE_LOCATION_ID, note: opts.note, autocomplete: true });
   return r.ok ? { ok: true, id: r.j.payment.id as string } : { ok: false, error: r.error };
 }
+export async function refundPayment(opts: { paymentId: string; cents: number; key: string; reason: string }) {
+  if (!squareConfigured() || opts.paymentId.startsWith("stub-")) return { ok: true, id: "stub-refund-" + opts.key, stub: true };
+  const r = await sq("/v2/refunds", { idempotency_key: opts.key, payment_id: opts.paymentId, amount_money: { amount: opts.cents, currency: "USD" }, reason: opts.reason });
+  return r.ok ? { ok: true, id: r.j.refund.id as string } : { ok: false, error: r.error };
+}
