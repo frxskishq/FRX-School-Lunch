@@ -9,14 +9,19 @@ export async function POST(req: Request) {
   if (b.action === "price") { await p.query("update menu_items set price_cents=$2, name=$3, active=$4 where id=$1", [b.id, b.price_cents, b.name, b.active]); return Response.json({ ok: true }); }
   if (b.action === "updateOrder" || b.action === "deleteOrder" || b.action === "refundOrder") {
     const o = (await p.query("select * from orders where id=$1", [Number(b.id)])).rows[0]; if (!o) return Response.json({ error: "Order not found" }, { status: 404 });
+    const fam = (await p.query("select email from families where id=$1", [o.family_id])).rows[0];
+    const stu = (await p.query("select name from students where id=$1", [o.student_id])).rows[0]?.name || "your student";
     if (b.action === "updateOrder") {
       if (o.billed_at) return Response.json({ error: "Already billed; refund it instead" }, { status: 400 });
       const m = (await p.query("select * from menu_items where id=$1", [Number(b.menuItemId)])).rows[0]; if (!m) return Response.json({ error: "Bad menu item" }, { status: 400 });
-      await p.query("update orders set menu_item_id=$2, item_name=$3, price_cents=$4 where id=$1", [o.id, m.id, m.name, m.price_cents]); return Response.json({ ok: true });
+      await p.query("update orders set menu_item_id=$2, item_name=$3, price_cents=$4 where id=$1", [o.id, m.id, m.name, m.price_cents]);
+      await sendMail(fam.email, `FRX Lunch order changed for ${fmtDate(o.lunch_date)}`, `Your order for ${stu} on ${fmtDate(o.lunch_date)} was changed by FRX staff.\nWas: ${o.item_name} ${money(o.price_cents)}\nNow: ${m.name} ${money(m.price_cents)}\nYou'll be billed the new price at month-end. Questions? Reply to this email.`); return Response.json({ ok: true });
     }
     if (b.action === "deleteOrder") {
       if (o.billed_at && !o.refunded_at) return Response.json({ error: "Already billed; refund it first" }, { status: 400 });
-      await p.query("delete from orders where id=$1", [o.id]); return Response.json({ ok: true });
+      await p.query("delete from orders where id=$1", [o.id]);
+      if (!o.refunded_at) await sendMail(fam.email, `FRX Lunch order cancelled for ${fmtDate(o.lunch_date)}`, `Your order for ${stu} on ${fmtDate(o.lunch_date)} (${o.item_name}, ${money(o.price_cents)}) was cancelled by FRX staff. You will not be billed for it. Questions? Reply to this email.`);
+      return Response.json({ ok: true });
     }
     if (!o.billed_at) return Response.json({ error: "Not billed yet; just remove the order" }, { status: 400 });
     if (o.refunded_at) return Response.json({ error: "Already refunded" }, { status: 400 });
@@ -25,7 +30,6 @@ export async function POST(req: Request) {
     const r = await refundPayment({ paymentId: inv.square_payment_id, cents: o.price_cents, key: `frx-refund-${o.id}`, reason: "FRX School Lunch order refund" });
     if (!r.ok) return Response.json({ error: "Refund failed: " + (r as any).error }, { status: 400 });
     await p.query("update orders set refunded_cents=price_cents, refunded_at=now() where id=$1", [o.id]);
-    const fam = (await p.query("select email from families where id=$1", [o.family_id])).rows[0];
     await sendMail(fam.email, "FRX Lunch refund", `Refunded ${money(o.price_cents)} for ${o.item_name} on ${fmtDate(o.lunch_date)}.`);
     return Response.json({ ok: true });
   }
