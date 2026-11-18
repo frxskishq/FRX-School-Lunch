@@ -7,7 +7,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const totals: Record<string, number> = {}; rows.filter((r: any) => !r.refunded).forEach((r: any) => totals[r.item_name] = (totals[r.item_name] || 0) + 1);
   const reported = (await p.query("select sent_at from report_log where lunch_date=$1", [date])).rows[0];
   const menu = (await p.query("select * from menu_items order by id")).rows;
-  const owed = (await p.query("select f.email, sum(o.price_cents)::int t, sum(o.price_cents) filter (where o.school='hemingway')::int hemingway, sum(o.price_cents) filter (where o.school='community')::int community from orders o join families f on f.id=o.family_id where billed_at is null group by f.email order by f.email")).rows;
+  const owed = (await p.query("select f.email, sum(o.price_cents)::int t from orders o join families f on f.id=o.family_id where o.billed_at is null and o.refunded_at is null and o.school=$1 group by f.email order by f.email", [school.id])).rows;
   return <>
     <div className="noprint" style={{display:"flex",gap:8,marginBottom:8}}>{SCHOOLS.map(s => <a key={s.id} href={`/admin?school=${s.id}`} className="btn sec" style={{flex:1,textAlign:"center",...(s.id === school.id ? {background:"#1d1d1b",color:"#fff"} : {background:"#fff",color:"#1d1d1b",border:"1px solid #cfcdc5"})}}>{s.name}</a>)}</div>
     <h1>{school.name} kitchen list: {fmtDate(date)}</h1>
@@ -18,8 +18,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       {date === w.target && w.open && <div className="muted">Ordering still open until the cutoff; list may change.</div>}</div>
     <div className="card"><b>By student</b><table><tbody>{rows.map((r: any) => <OrderRow key={r.id} reported={!!reported} o={r} menu={menu.filter((m: any) => m.active || m.id === r.menu_item_id)} />)}</tbody></table>{!rows.length && <span className="muted">No orders.</span>}</div>
     
-    <div className="noprint"><h2>Month-end billing (both schools)</h2>
-      <div className="card"><div className="muted" style={{marginBottom:8}}>Each family is charged once for all unbilled orders at both schools.</div><table><thead><tr><th align="left">Family</th><th align="right">Hemingway</th><th align="right">Community</th><th align="right">Total</th></tr></thead><tbody>{owed.map((o: any) => <tr key={o.email}><td>{o.email}</td><td align="right">{money(o.hemingway || 0)}</td><td align="right">{money(o.community || 0)}</td><td align="right"><b>{money(o.t)}</b></td></tr>)}</tbody></table>{!owed.length && <span className="muted">Nothing unbilled.</span>}<BillPanel /></div>
+    <div className="noprint"><h2>Month-end billing: {school.name}</h2>
+      <div className="card"><div className="muted" style={{marginBottom:8}}>Unbilled orders at {school.name} only. Families with orders at both schools are charged separately for each.</div><table><tbody>{owed.map((o: any) => <tr key={o.email}><td>{o.email}</td><td>{money(o.t)}</td></tr>)}</tbody></table>{!owed.length && <span className="muted">Nothing unbilled.</span>}<BillPanel school={school.id} schoolName={school.name} /></div>
       <h2>Menu</h2><MenuEditor menu={menu} /></div>
   </>;
 }

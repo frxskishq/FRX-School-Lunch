@@ -6,10 +6,10 @@ export function AdminLogin() {
   return <form className="card" onSubmit={async e => { e.preventDefault(); const r: any = await call({ action: "login", password: pw }); r.ok ? location.reload() : setErr(r.error); }}>
     <label>Password</label><input type="password" value={pw} onChange={e => setPw(e.target.value)} />{err && <div className="err">{err}</div>}<button>Sign in</button></form>;
 }
-export function BillPanel() {
+export function BillPanel({ school, schoolName }: { school: string; schoolName: string }) {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)); const [res, setRes] = useState<any>(null);
   return <><label>Bill through month</label><input type="month" value={month} onChange={e => setMonth(e.target.value)} />
-    <button onClick={async () => { if (confirm(`Charge every family's unbilled orders through ${month}?`)) setRes(await call({ action: "bill", month })); }}>Charge families</button>
+    <button onClick={async () => { if (confirm(`Charge every ${schoolName} family's unbilled orders through ${month}?`)) setRes(await call({ action: "bill", month, school })); }}>Charge {schoolName} families</button>
     {res?.results && <div className="ok" style={{marginTop:12}}>{res.results.length ? res.results.map((r: any) => <div key={r.email}>{r.email}: {r.total} {r.status}</div>) : "Nothing to bill."}</div>}</>;
 }
 export function MenuEditor({ menu }: any) {
