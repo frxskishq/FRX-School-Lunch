@@ -1,6 +1,6 @@
 import { db } from "./db"; import { localNow, addDays, fmtDate, money } from "./time"; import { sendMail } from "./mail";
 /** FRX Jackson WY: catered breakfast/lunch burritos for contracted companies, picked up and paid for at pickup. */
-export const JACKSON_SLOTS = [{ id: "07:00", label: "7:00 AM" }, { id: "08:00", label: "8:00 AM" }, { id: "11:00", label: "11:00 AM" }, { id: "12:00", label: "12:00 PM" }, { id: "13:00", label: "1:00 PM" }] as const;
+import { JACKSON_SLOTS } from "./jackson-slots"; export { JACKSON_SLOTS };
 export const slotLabel = (id: string) => JACKSON_SLOTS.find(s => s.id === id)?.label ?? id;
 export const BURRITO_PRICE_CENTS = 950;
 export const JACKSON_MENU = [

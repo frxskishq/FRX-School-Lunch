@@ -23,6 +23,7 @@ alter table reminder_subscribers add column if not exists schools text not null 
 create table if not exists reminder_log(lunch_date date primary key, sent_at timestamptz default now(), recipients int);
 create table if not exists jackson_companies(id serial primary key, name text not null, contact_name text, contact_email text, phone text, notes text, active bool not null default true);
 create table if not exists jackson_events(id serial primary key, company_id int not null references jackson_companies(id), pickup_date date not null, note text, unique(company_id, pickup_date));
+alter table jackson_events add column if not exists pickup_time text not null default '08:00';
 create table if not exists jackson_orders(id serial primary key, event_id int not null references jackson_events(id), family_id int references families(id), person text not null, option text not null, meat text, pickup_time text not null, price_cents int not null, created_at timestamptz default now());
 create table if not exists jackson_invoices(id serial primary key, event_id int unique not null references jackson_events(id), total_cents int not null, status text not null default 'unpaid', created_at timestamptz default now(), paid_at timestamptz);
 `;

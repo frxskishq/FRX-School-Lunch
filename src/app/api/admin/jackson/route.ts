@@ -1,4 +1,5 @@
-import { db } from "@/lib/db"; import { isAdmin } from "@/lib/auth"; import { generateDueInvoices } from "@/lib/jackson";
+import { db } from "@/lib/db"; import { isAdmin } from "@/lib/auth"; import { generateDueInvoices, JACKSON_SLOTS } from "@/lib/jackson";
+const slot = (s: any) => JACKSON_SLOTS.some(x => x.id === s);
 const date = (s: any) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(Date.parse(s));
 export async function POST(req: Request) {
   if (!(await isAdmin())) return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -12,10 +13,15 @@ export async function POST(req: Request) {
     }
     case "addEvent": {
       if (!date(b.date)) return Response.json({ error: "Pick a pickup date" }, { status: 400 });
-      const r = await p.query("insert into jackson_events(company_id,pickup_date,note) values($1,$2,$3) on conflict do nothing returning id", [Number(b.companyId), b.date, t(b.note)]);
+      if (!slot(b.time)) return Response.json({ error: "Pick a pickup time" }, { status: 400 });
+      const r = await p.query("insert into jackson_events(company_id,pickup_date,pickup_time,note) values($1,$2,$3,$4) on conflict do nothing returning id", [Number(b.companyId), b.date, b.time, t(b.note)]);
       return r.rowCount ? Response.json({ ok: true }) : Response.json({ error: "That company already has that pickup date" }, { status: 400 });
     }
-    case "updateEvent": await p.query("update jackson_events set pickup_date=$2, note=$3 where id=$1", [Number(b.id), b.date, t(b.note)]); return Response.json({ ok: true });
+    case "updateEvent": {
+      if (!date(b.date) || !slot(b.time)) return Response.json({ error: "Bad date or time" }, { status: 400 });
+      await p.query("update jackson_events set pickup_date=$2, pickup_time=$3, note=$4 where id=$1", [Number(b.id), b.date, b.time, t(b.note)]);
+      await p.query("update jackson_orders set pickup_time=$2 where event_id=$1", [Number(b.id), b.time]); return Response.json({ ok: true });
+    }
     case "deleteEvent": {
       if ((await p.query("select 1 from jackson_orders where event_id=$1 limit 1", [Number(b.id)])).rowCount) return Response.json({ error: "This pickup has orders; remove them first" }, { status: 400 });
       await p.query("delete from jackson_events where id=$1", [Number(b.id)]); return Response.json({ ok: true });
