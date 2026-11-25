@@ -9,6 +9,7 @@ create table if not exists menu_items(id serial primary key, name text not null,
 create table if not exists orders(id serial primary key, family_id int references families(id), student_id int references students(id), menu_item_id int references menu_items(id), item_name text not null, price_cents int not null, lunch_date date not null, created_at timestamptz default now(), billed_at timestamptz);
 alter table orders add column if not exists refunded_cents int not null default 0;
 alter table orders add column if not exists refunded_at timestamptz;
+create table if not exists invoices(id serial primary key, family_id int references families(id), month text, total_cents int, status text, square_payment_id text, created_at timestamptz default now(), unique(family_id, month));
 alter table invoices add column if not exists school text not null default 'hemingway';
 do $$ begin if exists (select 1 from pg_constraint where conname='invoices_family_id_month_key') then alter table invoices drop constraint invoices_family_id_month_key; end if; end $$;
 create unique index if not exists invoices_family_month_school on invoices(family_id, month, school);
@@ -20,7 +21,11 @@ create table if not exists report_log(lunch_date date primary key, sent_at times
 create table if not exists reminder_subscribers(email text primary key, token text not null, confirmed_at timestamptz, unsubscribed_at timestamptz, created_at timestamptz default now());
 alter table reminder_subscribers add column if not exists schools text not null default 'hemingway';
 create table if not exists reminder_log(lunch_date date primary key, sent_at timestamptz default now(), recipients int);
-create table if not exists invoices(id serial primary key, family_id int references families(id), month text, total_cents int, status text, square_payment_id text, created_at timestamptz default now(), unique(family_id, month));
+create table if not exists jackson_companies(id serial primary key, name text not null, contact_name text, contact_email text, phone text, notes text, active bool not null default true);
+create table if not exists jackson_events(id serial primary key, company_id int not null references jackson_companies(id), pickup_date date not null, note text, unique(company_id, pickup_date));
+alter table jackson_events add column if not exists pickup_time text not null default '08:00';
+create table if not exists jackson_orders(id serial primary key, event_id int not null references jackson_events(id), family_id int references families(id), person text not null, option text not null, meat text, pickup_time text not null, price_cents int not null, created_at timestamptz default now());
+create table if not exists jackson_invoices(id serial primary key, event_id int unique not null references jackson_events(id), total_cents int not null, status text not null default 'unpaid', created_at timestamptz default now(), paid_at timestamptz);
 `;
 export async function db() {
   if (!g.__init) g.__init = (async () => {
