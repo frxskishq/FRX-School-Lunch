@@ -9,6 +9,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const menu = (await p.query("select * from menu_items order by id")).rows;
   const owed = (await p.query("select f.email, sum(o.price_cents)::int t from orders o join families f on f.id=o.family_id where o.billed_at is null and o.refunded_at is null and o.school=$1 group by f.email order by f.email", [school.id])).rows;
   return <>
+    <div className="noprint muted" style={{marginBottom:8}}><a href="/admin/jackson">FRX Jackson WY admin (companies, pickups, invoices)</a></div>
     <div className="noprint" style={{display:"flex",gap:8,marginBottom:8}}>{SCHOOLS.map(s => <a key={s.id} href={`/admin?school=${s.id}`} className="btn sec" style={{flex:1,textAlign:"center",...(s.id === school.id ? {background:"#1d1d1b",color:"#fff"} : {background:"#fff",color:"#1d1d1b",border:"1px solid #cfcdc5"})}}>{s.name}</a>)}</div>
     <h1>{school.name} kitchen list: {fmtDate(date)}</h1>
     <form className="noprint" style={{display:"flex",gap:8}}><input type="hidden" name="school" value={school.id} /><input type="date" name="date" defaultValue={date} /><button className="sec" style={{width:"auto",marginTop:0,padding:"0 16px"}}>Go</button></form>

@@ -9,5 +9,7 @@ export default async function Home() {
     <div className="card"><h2 style={{margin:0}}>Which school are you ordering for?</h2><div className="muted">Each school has its own lunch day.</div></div>
     {SCHOOLS.map(s => <a key={s.id} href={`/order/${s.id}`} className="card" style={{display:"block",textDecoration:"none",color:"inherit"}}>
       <b style={{fontSize:18}}>{s.name}</b><div className="muted">Lunch delivered on {s.dayName}s</div></a>)}
+    <a href="/jackson" className="card" style={{display:"block",textDecoration:"none",color:"inherit"}}>
+      <b style={{fontSize:18}}>FRX Jackson WY</b><div className="muted">Catered breakfast and lunch burritos for your company, paid at pickup</div></a>
   </>;
 }
